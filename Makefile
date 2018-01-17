@@ -8,7 +8,8 @@ CFLAGS 		:= -Wall -O2
 CPPFLAGS	:= -nostdinc -nostdlib -fno-builtin
 
 objs += start.o
-objs += init.o
+objs += nand.o
+objs += uart.o
 objs += boot.o
 
 

@@ -1,9 +1,10 @@
 #include <setup.h>
 
 extern void uart0_init(void);
-extern void nand_read(unsigned int addr, unsigned char *buf, unsigned int len);
+extern void nand_read_page(unsigned int addr, unsigned char *buf, unsigned int len);
 extern void puts(char *str);
 extern void puthex(unsigned int val);
+extern int getc(void);
 
 static struct tag *params;
 
@@ -69,24 +70,31 @@ void setup_end_tag(void)
 int main( void )
 {
     void (*theKernel)(int zero, int arch, unsigned int params);
-    volatile unsigned int *p = (volatile unsigned int *)0x30008000;
-
+    //volatile unsigned int *p = (volatile unsigned int *)0x30008000;
     /* 1. 帮内核设置串口：内核启动的开始部分会从串口打印一些log，但是内核一开始还没有初始化串口 */
     uart0_init();
+    puts("\r\n---------welcome----------\r\n");
+    while(1)
+    {
+        puts("\n\r[boot @ boot_my]:");
+        while (1)
+        {
+            if (getc() == '\n')
+            {
+                puts("\rNo commander,  unknow.");
+                break;
+            }
+        }
+    }
 
-    /* 2. 从NAND FLASH把内核读入内存 */
-    puts("Copy kernel from nand\n\r");
-    nand_read(0x60000+64, (unsigned char *)0x30008000, 0x200000);
-    puthex(0x1234ABCD);
-    puts("\n\r");
-    puthex(*p);
-    puts("\n\r");
+
+    /* 2. 串口打印 */
 
     /* 3. 设置参数 */
     puts("Set boot params\n\r");
     setup_start_tag();
     setup_memory_tags();
-    setup_commandline_tag("noinitrd root=/dev/mtdblock3 init=/linuxrc console=ttySAC0");
+    setup_commandline_tag("noinitrd root=/dev/mtdblock3 init=/linuxrc console=ttySAC0,115200");
     setup_end_tag();
 
     /* 4. 跳转执行 */
