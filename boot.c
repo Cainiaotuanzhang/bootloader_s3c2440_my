@@ -1,7 +1,7 @@
 #include <setup.h>
 
 extern void uart0_init(void);
-extern void nand_read_page(unsigned int addr, unsigned char *buf, unsigned int len);
+extern void nand_read(unsigned int addr, unsigned char *buf, unsigned int len);
 extern void puts(char *str);
 extern void puthex(unsigned int val);
 extern int getc(void);
@@ -55,7 +55,7 @@ void setup_commandline_tag(char *cmdline)
     int len = strlen(cmdline) + 1;
 
     params->hdr.tag = ATAG_CMDLINE;
-    params->hdr.size = (sizeof(struct tag_header) + len + 3) >> 2;//what?
+    params->hdr.size = (sizeof(struct tag_header) + len + 3) >> 2;
 
     strcpy(params->u.cmdline.cmdline, cmdline);
     params = tag_next(params);

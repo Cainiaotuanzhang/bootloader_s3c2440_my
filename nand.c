@@ -10,10 +10,9 @@
 #define NF_CE_H()       do{NFCONT |= (1 << 1);}while(0)                 /* 关闭片选 */
 
 #define NF_WAIT_RB()    do{while(!(NFSTAT & (1 << 0)));}while(0)        /* 等待NANDFLASH不忙 */
-#define NF_CLEAR_RB()   do{NFSTAT |= (1 << 2);}while(0)                 /* 清除RnB信号 */
 #define NF_DETECT_RB()  do{while(!(NFSTAT & (1 << 2)));}while(0)        /* 等待RnB信号变高，即不忙 */
 
-extern void nand_read_page(unsigned int addr, unsigned char *buf, unsigned int len);
+extern void nand_read(unsigned int addr, unsigned char *buf, unsigned int len);
 
 void clear_bss(void)
 {
@@ -24,14 +23,14 @@ void clear_bss(void)
         *p = 0;
 }
 
-void copy_code_to_sdram(void)
+void copy_code_to_sdram(unsigned char *addr, unsigned char *dest, unsigned int len)
 {
-    nand_read_page(0x0, (unsigned char *)0x30008000, 256);  //boot分区512K,每次读1页，需要读256次.
+    nand_read((unsigned int)addr, dest, len);
 }
 
 void nand_cmd(unsigned char cmd)
 {
-    int i;
+    volatile int i;
     NFCMMD = cmd;
     for (i = 0; i < 10; i++);
 }
@@ -39,29 +38,32 @@ void nand_cmd(unsigned char cmd)
 
 void nand_addr(unsigned int addr)
 {
-    volatile int i;
 
-    NFADDR = addr & 0xff;
-    for (i = 0; i < 10; i++);
-    NFADDR = (addr >> 8) & 0xf;
-    for (i = 0; i < 10; i++);
+    unsigned int col  = addr % 2048;  
+    unsigned int page = addr / 2048;
+    volatile int i;  
+  
+    NFADDR = col & 0xff;  
+    for (i = 0; i < 10; i++);  
+    NFADDR = (col >> 8) & 0x0ff;  
+    for (i = 0; i < 10; i++);  
+      
+    NFADDR  = page & 0xff;  
+    for (i = 0; i < 10; i++);  
+    NFADDR  = (page >> 8) & 0xff;  
+    for (i = 0; i < 10; i++);  
+    NFADDR  = (page >> 16) & 0xff;  
+    for (i = 0; i < 10; i++); 
 
-    NFADDR = (addr >> 12) & 0xff;
-    for (i = 0; i < 10; i++);
-    NFADDR = (addr >> 20) & 0xff;
-    for (i = 0; i < 10; i++);
-    NFADDR = (addr >> 28) & 0x1;
-    for (i = 0; i < 10; i++);
 }
 
-void nand_read_page(unsigned int addr, unsigned char *buf, unsigned int len)
+void nand_read(unsigned int addr, unsigned char *buf, unsigned int len)
 {
-    volatile int i = 0;
-    volatile int j = 0;
+    int i = 0;
+    int col = addr % 2048;
 
     /* 1.选中，清除RnB信号 */
     NF_CE_L();
-    NF_CLEAR_RB();
 
     while (i < len)
     {
@@ -78,26 +80,17 @@ void nand_read_page(unsigned int addr, unsigned char *buf, unsigned int len)
         NF_WAIT_RB();
 
         /* 6.读数据 */
-        for (j = 0; j < 2048; j++)
+        for (; (col < 2048) && (i < len); col++)
         {
-            buf[j] = NFDATA;
+            buf[i] = *((unsigned char *)(&NFDATA));
             addr++;
+            i++;
         }
         
-        i++;
+        col = 0;
     }
 
     /* 7.取消选中 */
-    NF_CE_H();
-}
-
-
-void nand_reset(void)
-{
-    NF_CE_L();
-    NF_CLEAR_RB();
-    nand_cmd(0xff);
-    NF_DETECT_RB();
     NF_CE_H();
 }
 
@@ -110,7 +103,5 @@ void nand_init(void)
     NFCONF = (TACLS << 12) | (TWRPH0 << 8) | (TWRPH1 << 4);
     /* 使能NAND Flash控制器，初始化ECC, 禁止片选 */
     NFCONT = (1 << 4) | (1 << 1) | (1 << 0);
-
-    nand_reset();
 }
 
