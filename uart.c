@@ -11,25 +11,25 @@
 #define UTXH0       (*(volatile unsigned long *)0x50000020)
 #define URXH0       (*(volatile unsigned long *)0x50000024)
 #define UBRDIV0     (*(volatile unsigned long *)0x50000028)
-
 #define TXD0READY   (1 << 2)
 
 #define PCLK            (50000000)
 #define UART_CLK        PCLK
 #define UART_BAUD_RATE  (115200)
-#define UART_BRD        ((UART_CLK / (UART_BAUD_RATE * 16)) - 1) 
+#define UART_BRD        ((UART_CLK / (UART_BAUD_RATE * 16)) - 1)
 
 void uart0_init(void)
 {
-    GPHCON &= ~0xffff;
-    GPHCON |= 0xaaa0;
-   
-    GPHUP = 0x0;
+    GPHCON &= ~(0xf << 4);
+    GPHCON |= 0xa0;
+
+    GPHUP &= ~(0x3 << 2);
+    GPHUP |= 0x0c;
 
     ULCON0 = 0x3;
-    UCON0 = 0x245;
-    
-    UFCON0 = 0x7;
+    UCON0 = 0x5;
+
+    UFCON0 = 0x0;
     UMCON0 = 0x0;
     
     UBRDIV0 = UART_BRD;
@@ -103,7 +103,3 @@ void puthex(unsigned int val)
             putc('A' + j - 0xa);
     }
 }
-
-
-
-

@@ -55,7 +55,7 @@ void setup_commandline_tag(char *cmdline)
     int len = strlen(cmdline) + 1;
 
     params->hdr.tag = ATAG_CMDLINE;
-    params->hdr.size = (sizeof(struct tag_header) + len + 3) >> 2;
+    params->hdr.size = (sizeof(struct tag_header) + len + 2) >> 2;
 
     strcpy(params->u.cmdline.cmdline, cmdline);
     params = tag_next(params);
@@ -70,25 +70,13 @@ void setup_end_tag(void)
 int main( void )
 {
     void (*theKernel)(int zero, int arch, unsigned int params);
-    //volatile unsigned int *p = (volatile unsigned int *)0x30008000;
     /* 1. 帮内核设置串口：内核启动的开始部分会从串口打印一些log，但是内核一开始还没有初始化串口 */
     uart0_init();
     puts("\r\n---------welcome----------\r\n");
-    while(1)
-    {
-        puts("\n\r[boot @ boot_my]:");
-        while (1)
-        {
-            if (getc() == '\n')
-            {
-                puts("\rNo commander,  unknow.");
-                break;
-            }
-        }
-    }
 
-
-    /* 2. 串口打印 */
+    /* 2. 从NAND FLASH把内核读入内存 */
+    puts("Copy kernel from NAND.\n\r");
+    nand_read(0xa0000+64, (unsigned char *)0x30008000, 0x400000);/*boot(512K),params(128K),kernel(4M),rootfs(...)*/
 
     /* 3. 设置参数 */
     puts("Set boot params\n\r");

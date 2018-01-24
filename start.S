@@ -1,5 +1,6 @@
 
-#define S3C2440_MPLL_405MHz     ((0x7f << 12) | (0x2 << 4) | (0x1))
+#define S3C2440_MPLL_405MHz     ((0x7f<<12)|(0x02<<4)|(0x01))
+#define S3C2440_UPLL_48MHz      ((0x38<<12)|(0x02<<4)|(0x02))
 
 .text
 .global _start
@@ -31,6 +32,10 @@ reset:
     mcr p15, 0, r1, c1, c0, 0   /* 写入控制寄存器 */
 
     /* FCLK is 405MHz */
+    ldr r0, =0x4c000008
+    ldr r1, =S3C2440_UPLL_48MHz
+    str r1, [r0]
+    
     ldr r0, =0x4c000004
     ldr r1, =S3C2440_MPLL_405MHz
     str r1, [r0]
@@ -76,6 +81,7 @@ sdram_config:
     .long   0x000000B1      @ BANKSIZE
     .long   0x00000030      @ MRSRB6
     .long   0x00000030      @ MRSRB7
+
 
 _undefined_instruction:  .word undefined_instruction
 _software_interrupt: .word software_interrupt
